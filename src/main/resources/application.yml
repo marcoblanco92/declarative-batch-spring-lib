@@ -1,0 +1,132 @@
+bulk:
+  batch-properties:
+    jdbc:
+      platform: postgresql
+      initialize-schema: never
+      table-prefix: BATCH_
+  datasources:
+    b_declarative:
+      main: true
+      url: jdbc:postgresql://localhost:5432/b_declarative
+      username: marbl_u
+      password: marbl_p
+      type: POSTGRES
+      driver-class-name: org.postgresql.Driver
+    b_aux:
+      url: jdbc:postgresql://localhost:5433/b_aux
+      username: marbl_u
+      password: marbl_p
+      type: POSTGRES
+      driver-class-name: org.postgresql.Driver
+
+  batch-job:
+    name: pocJob
+    steps:
+      - name: pocStep
+        chunk: 10
+        reader:                 # Reader lato step
+          name: pocFileReader
+          type: FlatFileItemReader
+          config:
+            resource: file:src/main/resources/poc/PocFileToRead.csv
+            lineToSkip: 1
+            fieldNames: [id, name, surname, email, transaction, status, creationDate]
+            mappedClass: com.marbl.declarative_batch.spring_declarative_batch.poc.model.UserCsv
+        processor:
+          name: pocProcessor
+          type: ItemProcessor
+        writer:
+          name: pocCascadeInsert
+          type: JdbcBatchItemWriter
+          config:
+            datasource: b_declarative
+            sql: |
+              WITH upsert_cliente AS (
+              INSERT INTO tb_poc_cliente (nome, cognome, email)
+              VALUES (?, ?, ?)
+              ON CONFLICT (email) DO NOTHING
+              RETURNING id_cliente
+              )
+              INSERT INTO tb_poc_transazione (id_cliente, importo, stato, data_creazione)
+              VALUES (
+              COALESCE(
+              (SELECT id_cliente FROM upsert_cliente),
+              (SELECT id_cliente FROM tb_poc_cliente WHERE email = ?)
+              ),
+              ?,
+              ?,
+              ?
+              );
+            preparedStatementClass: com.marbl.declarative_batch.spring_declarative_batch.poc.statement.UserTransactionPreparedStatementSetter
+        listeners:
+          - type: StepExecutionListener
+            name: pocStep
+        next: pocStep2
+      - name: pocStep2
+        chunk: 10
+        reader:
+          name: pocJdbcPagingReader
+          type: JdbcPagingItemReader
+          config:
+            datasource: b_declarative
+            preparedStatementClass:
+            providerType: POSTGRESQL
+            mappedClass: com.marbl.declarative_batch.spring_declarative_batch.poc.mapper.ClientTransactionsRowMapper
+            clause:
+              selectClause: |
+                SELECT c.id_cliente AS "c.id_cliente", c.nome, c.cognome, t.importo, t.stato, t.data_creazione AS "t.data_creazione"
+              fromClause: |
+                FROM tb_poc_cliente c JOIN tb_poc_transazione t ON c.id_cliente = t.id_cliente
+              whereClause: |
+                WHERE t.stato = 'ATTIVO'
+              sortClause:
+                - key: "c.id_cliente"
+                  order: "ASCENDING"
+                - key: "t.data_creazione"
+                  order: "DESCENDING"
+        processor:
+          name: pocPassThroughProcessor
+          type: PassThroughItemProcessor
+        writer:
+          name: pocFileWriter
+          type: FlatFileItemWriter
+          config:
+            resource: src/main/resources/poc/test_poc.csv
+            fieldNames: [idCliente,nome,cognome,importo,stato,dataCreazione]
+            mappedClass: com.marbl.declarative_batch.spring_declarative_batch.poc.dto.ClientTransactionsDTO
+        listeners:
+          - type: StepExecutionListener
+            name: pocStep2
+      - name: customStep
+        chunk: 5
+        reader:
+          name: customFileReader
+          type: FlatFileItemReader
+        processor:
+          name: customItemProcessor
+          type: ItemProcessor
+        writer:
+          name: customBatchWriter
+          type: ItemWriter
+        transitions:
+          - from: pocStep2
+            on-condition: COMPLETED_WITH_INTEGRATION
+            to-step: customStep
+      - name: pocTaskletStep
+        type: TASKLET
+        tasklet: pocTasklet
+        transitions:
+          - from: customStep
+            on-condition: "*"
+            to-step: pocTaskletStep
+
+
+logging:
+  level:
+    root: INFO
+    com.marbl.declarative_batct.spring_declarative_batch: DEBUG
+  pattern:
+    console: "[%d{dd-MM-yyyy HH:mm:ss.SSSS}][%-4thread][%-0X{stepName}][%-0X{chunk}][%-3level][%-20logger{1}] %msg%n"
+
+
+
