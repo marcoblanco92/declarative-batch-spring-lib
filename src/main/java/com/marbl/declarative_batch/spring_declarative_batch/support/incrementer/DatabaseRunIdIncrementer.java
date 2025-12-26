@@ -4,17 +4,14 @@ import com.marbl.declarative_batch.spring_declarative_batch.configuration.batch.
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.*;
 import org.springframework.batch.core.explore.JobExplorer;
-import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-@Component
 @RequiredArgsConstructor
 public class DatabaseRunIdIncrementer implements JobParametersIncrementer {
 
     private final BatchJobConfig batchJobConfig;
     private final JobExplorer jobExplorer;
-
 
     @Override
     public JobParameters getNext(JobParameters parameters) {

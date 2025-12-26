@@ -8,7 +8,7 @@
 
     <groupId>com.marbl.declarative-batch</groupId>
     <artifactId>declarative-batch-spring-lib</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.0</version>
     <packaging>jar</packaging>
 
     <name>declarative-batch-spring-lib</name>
@@ -37,12 +37,6 @@
         <dependency>
             <groupId>org.springframework.batch</groupId>
             <artifactId>spring-batch-core</artifactId>
-        </dependency>
-
-        <!-- Spring Boot core (necessario per AutoConfiguration) -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot</artifactId>
         </dependency>
 
         <dependency>

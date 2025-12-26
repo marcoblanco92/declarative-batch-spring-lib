@@ -8,7 +8,6 @@ import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.scope.context.ChunkContext;
 import org.springframework.stereotype.Component;
 
-@Component
 public class LoggingStepListener implements StepExecutionListener, ChunkListener {
 
     @Override
