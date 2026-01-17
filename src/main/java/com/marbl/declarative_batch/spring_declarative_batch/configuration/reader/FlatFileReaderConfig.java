@@ -16,6 +16,6 @@ public class FlatFileReaderConfig implements ReaderConfig {
     @NotEmpty(message = "'fieldNames' must contain at least one value")
     private String[] fieldNames;
 
-    @NotBlank(message = "'mappedClass' must be provided")
-    private String mappedClass;
+    @NotBlank(message = "'fieldMapperClass' must be provided")
+    private String fieldMapperClass;
 }

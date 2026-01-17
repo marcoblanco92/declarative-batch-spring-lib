@@ -2,6 +2,7 @@ package com.marbl.declarative_batch.spring_declarative_batch.builder.writer;
 
 import com.marbl.declarative_batch.spring_declarative_batch.configuration.batch.ComponentConfig;
 import com.marbl.declarative_batch.spring_declarative_batch.configuration.writer.JdbcBatchWriterConfig;
+import com.marbl.declarative_batch.spring_declarative_batch.utils.ClassNameResolver;
 import com.marbl.declarative_batch.spring_declarative_batch.utils.DatasourceUtils;
 import com.marbl.declarative_batch.spring_declarative_batch.utils.MapUtils;
 import lombok.AccessLevel;
@@ -47,9 +48,19 @@ public class JdbcBatchWriterBuilder {
             DataSource dataSource = DatasourceUtils.getDataSource(context, jdbcConfig.getDatasource());
             log.debug("Resolved DataSource '{}' for component '{}'", jdbcConfig.getDatasource(), config.getName());
 
+            // Get ClassNameResolver bean
+            ClassNameResolver classNameResolver = context.getBean(ClassNameResolver.class);
+
+            // Resolve PreparedStatementSetter class using ClassNameResolver
+            String preparedStatementClassName = classNameResolver.resolveClass(
+                    jdbcConfig.getPreparedStatementClass(),
+                    "statement"
+            );
+            log.debug("Resolved ItemPreparedStatementSetter class: {}", preparedStatementClassName);
+
             // Instantiate PreparedStatementSetter dynamically
             ItemPreparedStatementSetter<O> psSetter =
-                    instantiateClass(jdbcConfig.getPreparedStatementClass(), ItemPreparedStatementSetter.class);
+                    instantiateClass(preparedStatementClassName, ItemPreparedStatementSetter.class);
             log.debug("Instantiated ItemPreparedStatementSetter of type '{}'", psSetter.getClass().getName());
 
             // Configure JdbcBatchItemWriter
@@ -64,6 +75,13 @@ public class JdbcBatchWriterBuilder {
 
             return writer;
 
+        } catch (ClassNotFoundException e) {
+            String errorMsg = String.format(
+                    "Invalid JdbcBatchWriter configuration: class not found ('%s') for component '%s'",
+                    e.getMessage(), config.getName()
+            );
+            log.error(errorMsg, e);
+            throw new IllegalArgumentException(errorMsg, e);
         } catch (Exception e) {
             String errorMsg = String.format(
                     "Failed to initialize JdbcBatchItemWriter for component '%s': %s",

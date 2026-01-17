@@ -2,6 +2,7 @@ package com.marbl.declarative_batch.spring_declarative_batch.builder.reader;
 
 import com.marbl.declarative_batch.spring_declarative_batch.configuration.batch.ComponentConfig;
 import com.marbl.declarative_batch.spring_declarative_batch.configuration.reader.FlatFileReaderConfig;
+import com.marbl.declarative_batch.spring_declarative_batch.utils.ClassNameResolver;
 import com.marbl.declarative_batch.spring_declarative_batch.utils.MapUtils;
 import com.marbl.declarative_batch.spring_declarative_batch.utils.ResourceUtils;
 import lombok.AccessLevel;
@@ -11,6 +12,7 @@ import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.mapping.BeanWrapperFieldSetMapper;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
+import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.Resource;
 
 /**
@@ -24,11 +26,12 @@ public class FlatFileReaderBuilder {
     /**
      * Builds a fully configured {@link FlatFileItemReader} instance based on the provided {@link ComponentConfig}.
      *
-     * @param config The declarative component configuration
-     * @param <I>    The target item type
+     * @param config  The declarative component configuration
+     * @param context The Spring {@link ApplicationContext} to resolve dependencies
+     * @param <I>     The target item type
      * @return Configured {@link FlatFileItemReader} instance
      */
-    public static <I> FlatFileItemReader<I> build(ComponentConfig config) {
+    public static <I> FlatFileItemReader<I> build(ComponentConfig config, ApplicationContext context) {
         log.debug("Building FlatFileItemReader for component '{}'", config.getName());
 
         // Normalize nested map structures (convert indexed maps into lists, etc.)
@@ -54,9 +57,16 @@ public class FlatFileReaderBuilder {
             tokenizer.setDelimiter(flatConfig.getDelimiter());
             tokenizer.setNames(flatConfig.getFieldNames());
 
+            // Get ClassNameResolver bean
+            ClassNameResolver classNameResolver = context.getBean(ClassNameResolver.class);
+
+            // Resolve DTO class using ClassNameResolver
+            String dtoClassName = classNameResolver.resolveClass(flatConfig.getFieldMapperClass(), "dto");
+            log.debug("Resolved DTO class: {}", dtoClassName);
+
             BeanWrapperFieldSetMapper<I> fieldSetMapper = new BeanWrapperFieldSetMapper<>();
             @SuppressWarnings("unchecked")
-            Class<I> targetClass = (Class<I>) Class.forName(flatConfig.getMappedClass());
+            Class<I> targetClass = (Class<I>) Class.forName(dtoClassName);
             fieldSetMapper.setTargetType(targetClass);
 
             lineMapper.setLineTokenizer(tokenizer);
@@ -72,7 +82,7 @@ public class FlatFileReaderBuilder {
         } catch (ClassNotFoundException e) {
             String errorMsg = String.format(
                     "Invalid FlatFileReader configuration: mapped class '%s' not found for component '%s'",
-                    flatConfig.getMappedClass(), config.getName()
+                    flatConfig.getFieldMapperClass(), config.getName()
             );
             log.error(errorMsg, e);
             throw new IllegalArgumentException(errorMsg, e);

@@ -31,7 +31,6 @@ public class DeclarativeBatchInfrastructureAutoConfiguration extends DefaultBatc
     private final BatchDatasourceConfig batchDatasourceConfig;
 
     @Bean
-    @ConditionalOnMissingBean
     public PlatformTransactionManager transactionManager(@Qualifier("mainDataSource") DataSource mainDataSource) {
         log.info("Creating transaction manager for main datasource");
         return new DataSourceTransactionManager(mainDataSource);
@@ -39,7 +38,6 @@ public class DeclarativeBatchInfrastructureAutoConfiguration extends DefaultBatc
 
     @Bean
     @Primary
-    @ConditionalOnMissingBean
     public JobRepository jobRepository(@Qualifier("mainDataSource") DataSource mainDataSource,
                                        PlatformTransactionManager transactionManager) throws Exception {
 
@@ -74,7 +72,6 @@ public class DeclarativeBatchInfrastructureAutoConfiguration extends DefaultBatc
     }
 
     @Bean
-    @ConditionalOnMissingBean
     public JobExplorer jobExplorer(@Qualifier("mainDataSource") DataSource mainDataSource,
                                    PlatformTransactionManager transactionManager) throws Exception {
 

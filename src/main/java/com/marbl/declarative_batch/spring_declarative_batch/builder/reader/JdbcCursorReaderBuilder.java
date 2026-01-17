@@ -2,6 +2,7 @@ package com.marbl.declarative_batch.spring_declarative_batch.builder.reader;
 
 import com.marbl.declarative_batch.spring_declarative_batch.configuration.batch.ComponentConfig;
 import com.marbl.declarative_batch.spring_declarative_batch.configuration.reader.JdbcCursorReaderConfig;
+import com.marbl.declarative_batch.spring_declarative_batch.utils.ClassNameResolver;
 import com.marbl.declarative_batch.spring_declarative_batch.utils.DatasourceUtils;
 import com.marbl.declarative_batch.spring_declarative_batch.utils.MapUtils;
 import com.marbl.declarative_batch.spring_declarative_batch.utils.ReflectionUtils;
@@ -48,12 +49,24 @@ public class JdbcCursorReaderBuilder {
             DataSource dataSource = DatasourceUtils.getDataSource(context, jdbcConfig.getDatasource());
             log.debug("Resolved DataSource '{}' for component '{}'", jdbcConfig.getDatasource(), config.getName());
 
-            // Instantiate RowMapper and PreparedStatementSetter dynamically
-            RowMapper<I> rowMapper = ReflectionUtils.instantiateClass(jdbcConfig.getMappedClass(), RowMapper.class);
+            // Get ClassNameResolver bean
+            ClassNameResolver classNameResolver = context.getBean(ClassNameResolver.class);
+
+            // Resolve RowMapper class using ClassNameResolver
+            String rowMapperClassName = classNameResolver.resolveClass(jdbcConfig.getRowMapperClass(), "mapper");
+            log.debug("Resolved RowMapper class: {}", rowMapperClassName);
+            RowMapper<I> rowMapper = ReflectionUtils.instantiateClass(rowMapperClassName, RowMapper.class);
+
+            // Resolve PreparedStatementSetter class using ClassNameResolver
+            String preparedStatementClassName = classNameResolver.resolveClass(
+                    jdbcConfig.getPreparedStatementClass(), "statement"
+            );
+            log.debug("Resolved PreparedStatementSetter class: {}", preparedStatementClassName);
             PreparedStatementSetter psSetter = ReflectionUtils.instantiateClass(
-                    jdbcConfig.getPreparedStatementClass(), PreparedStatementSetter.class
+                    preparedStatementClassName, PreparedStatementSetter.class
             );
 
+            // Build the JdbcCursorItemReader
             JdbcCursorItemReader<I> reader = new JdbcCursorItemReaderBuilder<I>()
                     .name(config.getName())
                     .dataSource(dataSource)
@@ -67,6 +80,13 @@ public class JdbcCursorReaderBuilder {
 
             return reader;
 
+        } catch (ClassNotFoundException e) {
+            String errorMsg = String.format(
+                    "Invalid JdbcCursorReader configuration: class not found ('%s') for component '%s'",
+                    e.getMessage(), config.getName()
+            );
+            log.error(errorMsg, e);
+            throw new IllegalArgumentException(errorMsg, e);
         } catch (Exception e) {
             String errorMsg = String.format(
                     "Failed to initialize JdbcCursorItemReader for component '%s': %s",

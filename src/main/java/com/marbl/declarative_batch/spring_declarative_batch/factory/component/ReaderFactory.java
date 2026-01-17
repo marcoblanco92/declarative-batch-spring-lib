@@ -51,7 +51,7 @@ public class ReaderFactory {
             reader = switch (readerType) {
                 case "FlatFileItemReader" -> {
                     log.debug("Using FlatFileReaderBuilder for component '{}'", config.getName());
-                    yield FlatFileReaderBuilder.build(config);
+                    yield FlatFileReaderBuilder.build(config,context);
                 }
                 case "JdbcCursorItemReader" -> {
                     log.debug("Using JdbcCursorReaderBuilder for component '{}'", config.getName());

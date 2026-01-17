@@ -18,7 +18,4 @@ public class FlatFileWriterConfig implements WriterConfig {
 
     @NotEmpty(message = "'fieldNames' must contain at least one value")
     private String[] fieldNames;
-
-    @NotBlank(message = "'mappedClass' must be provided")
-    private String mappedClass;
 }

@@ -66,40 +66,33 @@ public class DeclarativeBatchJobAutoConfiguration {
 
     @Bean
     @Primary
-    @ConditionalOnMissingBean
     public ReaderFactory readerFactory(ApplicationContext context) { return new ReaderFactory(context); }
 
     @Bean
     @Primary
-    @ConditionalOnMissingBean
     public ProcessorFactory processorFactory(ApplicationContext context) { return new ProcessorFactory(context); }
 
     @Bean
     @Primary
-    @ConditionalOnMissingBean
     public WriterFactory writerFactory(ApplicationContext context) { return new WriterFactory(context); }
 
     @Bean
     @Primary
-    @ConditionalOnMissingBean
     public ListenerFactory listenerFactory(ApplicationContext context) { return new ListenerFactory(context); }
 
     @Bean
     @Primary
-    @ConditionalOnMissingBean
     public LoggingStepListener loggingStepListener() { return new LoggingStepListener(); }
 
     @Bean
     @Primary
     @ConditionalOnBean(JobExplorer.class)
-    @ConditionalOnMissingBean
     public DatabaseRunIdIncrementer databaseRunIdIncrementer(BatchJobConfig batchJobConfig, JobExplorer jobExplorer) {
         return new DatabaseRunIdIncrementer(batchJobConfig, jobExplorer);
     }
 
     @Bean
     @Profile("local")
-    @ConditionalOnMissingBean
     public RunIdIncrementer runIdIncrementer() {
         log.info("RunIdIncrementer bean created (profile: local)");
         return new RunIdIncrementer();

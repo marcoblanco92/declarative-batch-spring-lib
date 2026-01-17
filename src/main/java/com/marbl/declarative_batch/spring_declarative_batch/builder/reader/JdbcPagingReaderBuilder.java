@@ -2,6 +2,7 @@ package com.marbl.declarative_batch.spring_declarative_batch.builder.reader;
 
 import com.marbl.declarative_batch.spring_declarative_batch.configuration.batch.ComponentConfig;
 import com.marbl.declarative_batch.spring_declarative_batch.configuration.reader.JdbcPagingReaderConfig;
+import com.marbl.declarative_batch.spring_declarative_batch.utils.ClassNameResolver;
 import com.marbl.declarative_batch.spring_declarative_batch.utils.DatasourceUtils;
 import com.marbl.declarative_batch.spring_declarative_batch.utils.MapUtils;
 import lombok.AccessLevel;
@@ -51,7 +52,11 @@ public class JdbcPagingReaderBuilder {
             log.debug("Resolved DataSource '{}' for component '{}'", jdbcConfig.getDatasource(), config.getName());
 
             // Instantiate RowMapper dynamically
-            RowMapper<I> rowMapper = instantiateClass(jdbcConfig.getMappedClass(), RowMapper.class);
+            // Resolve mapper class using ClassNameResolver
+            ClassNameResolver classNameResolver = context.getBean(ClassNameResolver.class);
+            String mapperClassName = classNameResolver.resolveClass(jdbcConfig.getRowMapperClass(), "mapper");
+            log.debug("Resolved mapper class: {}", mapperClassName);
+            RowMapper<I> rowMapper = instantiateClass(mapperClassName, RowMapper.class);
 
             // Configure JdbcPagingItemReader
             JdbcPagingItemReader<I> reader = new JdbcPagingItemReader<>();

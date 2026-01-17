@@ -15,6 +15,6 @@ public class JdbcCursorReaderConfig implements ReaderConfig {
     @NotBlank(message = "'preparedStatementClass' must be provided")
     private String preparedStatementClass;
 
-    @NotBlank(message = "'mappedClass' must be provided")
-    private String mappedClass;
+    @NotBlank(message = "'rowMapperClass' must be provided")
+    private String rowMapperClass;
 }
